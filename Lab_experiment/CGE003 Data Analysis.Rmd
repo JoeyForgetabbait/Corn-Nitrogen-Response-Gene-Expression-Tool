@@ -1,0 +1,1167 @@
+---
+title: "CGE003 Data Analysis"
+author: "Joseph Creanza"
+date: "2023-03-15"
+output: 
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r}
+
+library(magrittr)
+library(rio)
+library(janitor)
+library(tidyverse)
+library(data.table)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+setwd("C:/Users/JosephCreanza/OneDrive - Pivot Bio/Documents/Pivot Docuents/Pivot Employee Documents/NGS/CGE/RT-qPCR Analysis Script/CGE003/Data/Raw_data_inputs")
+
+quantRTdata <- read_excel("CGE003_EF1A-Qseries_CB_JC.xls", sheet = "Results")
+quantRTdata
+
+
+##Next create data frame including relevant columns, sample ID and crt score for delta CT cal. 
+
+
+
+dataIneed <- data.table(Sample=c(quantRTdata$...4), Target=c(quantRTdata$...5),
+                        RelativeCTMean=c(quantRTdata$...10))
+CGEDataTable <- dataIneed %>% slice(-c(1:44))
+CGEDataTable
+
+
+##########################Calculate the average ct of house keeping genes for deltaCT calc############################
+
+HKmean <- CGEDataTable %>%
+  mutate(RelativeCTMean = as.double(RelativeCTMean)) %>% 
+  filter(Target %in% c("EF1a", "bTUB")) %>% 
+  group_by(Sample) %>% 
+  summarise(avg_hk_ct = mean(RelativeCTMean))
+HKmean
+
+
+TargetDCT <- CGEDataTable %>% left_join(.,HKmean) %>% mutate(delta_ct = as.double(RelativeCTMean) - as.double(avg_hk_ct))
+view(TargetDCT)
+################################Join values to experimental meta data file###########################
+
+ExpMetaData <- read_excel("Expieremnt Metadata.xlsx", sheet = "Sheet2")
+ExpMetaData
+
+
+Modpizza <- TargetDCT %>% select(Sample, Target, delta_ct)
+Modpizza
+
+
+FinalPizza <- Modpizza %>% inner_join(ExpMetaData, by = "Sample")
+FinalPizza
+
+##########################################Target Data Frames by Treatment##################################################################
+
+Q6by <- FinalPizza %>% filter(Target== c("Q6Z5C8"))
+
+Q6 <- ggplot(Q6by, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q6Z5C8 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q6
+
+Q2by <- FinalPizza %>% filter(Target=="Q2V8D7")
+
+Q2 <- ggplot(Q2by, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q2V8D7 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q2
+
+Q69by <- FinalPizza %>% filter(Target=="Q69NI4")
+
+Q69by <- ggplot(Q69by, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q69NI4 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q69by
+
+Q9by <- FinalPizza %>% filter(Target=="Q9M4D6")
+
+Q9 <- ggplot(Q9by, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q9M4D6 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q9
+
+Q8by <- FinalPizza %>% filter(Target=="Q851M9")
+
+Q8 <- ggplot(Q8by, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q851M9 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q8
+
+Q10Rby <- FinalPizza %>% filter(Target=="Q10R45")
+
+Q10Rby <- ggplot(Q10Rby, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q10R45 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q10Rby
+
+Q10Cby <- FinalPizza %>% filter(Target=="Q10C31")
+
+Q10Cby <- ggplot(Q10Cby, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q10C31 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q10Cby
+
+Q0NZ <- FinalPizza %>% filter(Target=="Q0NZY1")
+
+Q0NZ <- ggplot(Q0NZ, aes(Treatment, delta_ct, fill = Treatment)) + scale_y_reverse() + geom_boxplot() + ggtitle("Q0NZY1 Differential Expression") +
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+
+Q0NZ
+
+###############################################################################################################################################
+
+Q2V8D7expression <- FinalPizza %>% filter(Target=="Q2V8D7") %>% group_by(Sample, Treatment) 
+
+Q6Z5C8expression <- FinalPizza %>% filter(Target=="Q6Z5C8") %>% group_by(Sample, Treatment)
+
+Q69NI4expression <- FinalPizza %>% filter(Target=="Q69NI4") %>% group_by(Sample, Treatment)
+
+Q9M4D6expression <- FinalPizza %>% filter(Target=="Q9M4D6") %>% group_by(Sample, Treatment)
+
+Q851M9expression <- FinalPizza %>% filter(Target=="Q851M9") %>% group_by(Sample, Treatment)
+
+Q10R45expression <- FinalPizza %>% filter(Target=="Q10R45") %>% group_by(Sample, Treatment)
+
+Q10C31expression <- FinalPizza %>% filter(Target=="Q10C31") %>% group_by(Sample, Treatment)
+
+Q0NZY1expression <- FinalPizza %>% filter(Target=="Q0NZY1") %>% group_by(Sample, Treatment)
+
+################################################################################################################################################
+
+CGE3.5LframeQ2V8D7 <- Q2V8D7expression[str_detect(Q2V8D7expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ2V8D7 <- Q2V8D7expression[str_detect(Q2V8D7expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ2V8D7 <- Q2V8D7expression[str_detect(Q2V8D7expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ2V8D7 <- Q2V8D7expression[str_detect(Q2V8D7expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ6Z5C8 <- Q6Z5C8expression[str_detect(Q6Z5C8expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ6Z5C8 <- Q6Z5C8expression[str_detect(Q6Z5C8expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ6Z5C8 <- Q6Z5C8expression[str_detect(Q6Z5C8expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ6Z5C8 <- Q6Z5C8expression[str_detect(Q6Z5C8expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ69NI4 <- Q69NI4expression[str_detect(Q69NI4expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ69NI4 <- Q69NI4expression[str_detect(Q69NI4expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ69NI4 <- Q69NI4expression[str_detect(Q69NI4expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ69NI4 <- Q69NI4expression[str_detect(Q69NI4expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ9M4D6 <- Q9M4D6expression[str_detect(Q9M4D6expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ9M4D6 <- Q9M4D6expression[str_detect(Q9M4D6expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ9M4D6 <- Q9M4D6expression[str_detect(Q9M4D6expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ9M4D6 <- Q9M4D6expression[str_detect(Q9M4D6expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ851M9 <- Q851M9expression[str_detect(Q851M9expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ851M9 <- Q851M9expression[str_detect(Q851M9expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ851M9 <- Q851M9expression[str_detect(Q851M9expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ851M9 <- Q851M9expression[str_detect(Q851M9expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ10R45 <- Q10R45expression[str_detect(Q10R45expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ10R45 <- Q10R45expression[str_detect(Q10R45expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ10R45 <- Q10R45expression[str_detect(Q10R45expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ10R45 <- Q10R45expression[str_detect(Q10R45expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ10C31 <- Q10C31expression[str_detect(Q10C31expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ10C31 <- Q10C31expression[str_detect(Q10C31expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ10C31 <- Q10C31expression[str_detect(Q10C31expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ10C31 <- Q10C31expression[str_detect(Q10C31expression$Sample, "CGE3.1.R"), ]
+
+CGE3.5LframeQ0NZY1 <- Q0NZY1expression[str_detect(Q0NZY1expression$Sample, "CGE3.5.L"), ]
+
+CGE3.5RframeQ0NZY1 <- Q0NZY1expression[str_detect(Q0NZY1expression$Sample, "CGE3.5.R"), ]
+
+CGE3.1LframeQ0NZY1 <- Q0NZY1expression[str_detect(Q0NZY1expression$Sample, "CGE3.1.L"), ]
+
+CGE3.1RframeQ0NZY1 <- Q0NZY1expression[str_detect(Q0NZY1expression$Sample, "CGE3.1.R"), ]
+
+########################################Key by color for treatment graphs##########################################################
+
+
+treatment_id <- rep("", times = nrow(CGE3.5LframeQ2V8D7))
+
+for (i in 1:nrow(CGE3.5LframeQ2V8D7)) {
+  if(str_detect(CGE3.5LframeQ2V8D7[i, "Treatment"], "T1")) {
+    treatment_id[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ2V8D7[i, "Treatment"], "T2")) {
+    treatment_id[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ2V8D7[i, "Treatment"], "T3")) {
+    treatment_id[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ2V8D7[i, "Treatment"], "T4")) {
+    treatment_id[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ2V8D7[i, "Treatment"], "T5")) {
+    treatment_id[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ2V8D7[i, "Treatment"], "T6")) {
+    treatment_id[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ2V8D7$treatment_id <- treatment_id
+################################################################################################################################
+treatment_id2 <- rep("", times = nrow(CGE3.5RframeQ2V8D7))
+
+for (i in 1:nrow(CGE3.5RframeQ2V8D7)) {
+  if(str_detect(CGE3.5RframeQ2V8D7[i, "Treatment"], "T1")) {
+    treatment_id2[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ2V8D7[i, "Treatment"], "T2")) {
+    treatment_id2[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ2V8D7[i, "Treatment"], "T3")) {
+    treatment_id2[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ2V8D7[i, "Treatment"], "T4")) {
+    treatment_id2[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ2V8D7[i, "Treatment"], "T5")) {
+    treatment_id2[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ2V8D7[i, "Treatment"], "T6")) {
+    treatment_id2[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ2V8D7$treatment_id2 <- treatment_id2
+###################################################################################################################################
+treatment_id3 <- rep("", times = nrow(CGE3.1LframeQ2V8D7))
+
+for (i in 1:nrow(CGE3.1LframeQ2V8D7)) {
+  if(str_detect(CGE3.1LframeQ2V8D7[i, "Treatment"], "T1")) {
+    treatment_id3[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ2V8D7[i, "Treatment"], "T2")) {
+    treatment_id3[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ2V8D7[i, "Treatment"], "T3")) {
+    treatment_id3[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ2V8D7[i, "Treatment"], "T4")) {
+    treatment_id3[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ2V8D7[i, "Treatment"], "T5")) {
+    treatment_id3[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ2V8D7[i, "Treatment"], "T6")) {
+    treatment_id3[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ2V8D7$treatment_id3 <- treatment_id3
+#####################################################################################################################################
+treatment_id4 <- rep("", times = nrow(CGE3.1RframeQ2V8D7))
+
+for (i in 1:nrow(CGE3.1RframeQ2V8D7)) {
+  if(str_detect(CGE3.1RframeQ2V8D7[i, "Treatment"], "T1")) {
+    treatment_id4[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ2V8D7[i, "Treatment"], "T2")) {
+    treatment_id4[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ2V8D7[i, "Treatment"], "T3")) {
+    treatment_id4[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ2V8D7[i, "Treatment"], "T4")) {
+    treatment_id4[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ2V8D7[i, "Treatment"], "T5")) {
+    treatment_id4[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ2V8D7[i, "Treatment"], "T6")) {
+    treatment_id4[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ2V8D7$treatment_id4 <- treatment_id4
+####################################################################################################################################
+treatment_id5 <- rep("", times = nrow(CGE3.5LframeQ6Z5C8))
+
+for (i in 1:nrow(CGE3.5LframeQ6Z5C8)) {
+  if(str_detect(CGE3.5LframeQ6Z5C8[i, "Treatment"], "T1")) {
+    treatment_id5[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ6Z5C8[i, "Treatment"], "T2")) {
+    treatment_id5[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ6Z5C8[i, "Treatment"], "T3")) {
+    treatment_id5[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ6Z5C8[i, "Treatment"], "T4")) {
+    treatment_id5[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ6Z5C8[i, "Treatment"], "T5")) {
+    treatment_id5[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ6Z5C8[i, "Treatment"], "T6")) {
+    treatment_id5[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ6Z5C8$treatment_id5 <- treatment_id5
+####################################################################################################################################
+treatment_id6 <- rep("", times = nrow(CGE3.5RframeQ6Z5C8))
+
+for (i in 1:nrow(CGE3.5RframeQ6Z5C8)) {
+  if(str_detect(CGE3.5RframeQ6Z5C8[i, "Treatment"], "T1")) {
+    treatment_id6[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ6Z5C8[i, "Treatment"], "T2")) {
+    treatment_id6[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ6Z5C8[i, "Treatment"], "T3")) {
+    treatment_id6[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ6Z5C8[i, "Treatment"], "T4")) {
+    treatment_id6[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ6Z5C8[i, "Treatment"], "T5")) {
+    treatment_id6[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ6Z5C8[i, "Treatment"], "T6")) {
+    treatment_id6[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ6Z5C8$treatment_id6 <- treatment_id6
+#######################################################################################################################################
+treatment_id7 <- rep("", times = nrow(CGE3.1LframeQ6Z5C8))
+
+for (i in 1:nrow(CGE3.1LframeQ6Z5C8)) {
+  if(str_detect(CGE3.1LframeQ6Z5C8[i, "Treatment"], "T1")) {
+    treatment_id7[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ6Z5C8[i, "Treatment"], "T2")) {
+    treatment_id7[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ6Z5C8[i, "Treatment"], "T3")) {
+    treatment_id7[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ6Z5C8[i, "Treatment"], "T4")) {
+    treatment_id7[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ6Z5C8[i, "Treatment"], "T5")) {
+    treatment_id7[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ6Z5C8[i, "Treatment"], "T6")) {
+    treatment_id7[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ6Z5C8$treatment_id7 <- treatment_id7
+#######################################################################################################################################
+treatment_id8 <- rep("", times = nrow(CGE3.1RframeQ6Z5C8))
+
+for (i in 1:nrow(CGE3.1RframeQ6Z5C8)) {
+  if(str_detect(CGE3.1RframeQ6Z5C8[i, "Treatment"], "T1")) {
+    treatment_id8[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ6Z5C8[i, "Treatment"], "T2")) {
+    treatment_id8[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ6Z5C8[i, "Treatment"], "T3")) {
+    treatment_id8[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ6Z5C8[i, "Treatment"], "T4")) {
+    treatment_id8[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ6Z5C8[i, "Treatment"], "T5")) {
+    treatment_id8[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ6Z5C8[i, "Treatment"], "T6")) {
+    treatment_id8[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ6Z5C8$treatment_id8 <- treatment_id8
+##########################################################################################################################################
+treatment_id9 <- rep("", times = nrow(CGE3.5LframeQ69NI4))
+
+for (i in 1:nrow(CGE3.5LframeQ69NI4)) {
+  if(str_detect(CGE3.5LframeQ69NI4[i, "Treatment"], "T1")) {
+    treatment_id9[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ69NI4[i, "Treatment"], "T2")) {
+    treatment_id9[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ69NI4[i, "Treatment"], "T3")) {
+    treatment_id9[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ69NI4[i, "Treatment"], "T4")) {
+    treatment_id9[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ69NI4[i, "Treatment"], "T5")) {
+    treatment_id9[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ69NI4[i, "Treatment"], "T6")) {
+    treatment_id9[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ69NI4$treatment_id9 <- treatment_id9
+################################################################################################################################################
+treatment_id10 <- rep("", times = nrow(CGE3.5RframeQ69NI4))
+
+for (i in 1:nrow(CGE3.5RframeQ69NI4)) {
+  if(str_detect(CGE3.5RframeQ69NI4[i, "Treatment"], "T1")) {
+    treatment_id10[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ69NI4[i, "Treatment"], "T2")) {
+    treatment_id10[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ69NI4[i, "Treatment"], "T3")) {
+    treatment_id10[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ69NI4[i, "Treatment"], "T4")) {
+    treatment_id10[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ69NI4[i, "Treatment"], "T5")) {
+    treatment_id10[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ69NI4[i, "Treatment"], "T6")) {
+    treatment_id10[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ69NI4$treatment_id10 <- treatment_id10
+###############################################################################################################################################
+treatment_id11 <- rep("", times = nrow(CGE3.1LframeQ69NI4))
+
+for (i in 1:nrow(CGE3.1LframeQ69NI4)) {
+  if(str_detect(CGE3.1LframeQ69NI4[i, "Treatment"], "T1")) {
+    treatment_id11[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ69NI4[i, "Treatment"], "T2")) {
+    treatment_id11[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ69NI4[i, "Treatment"], "T3")) {
+    treatment_id11[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ69NI4[i, "Treatment"], "T4")) {
+    treatment_id11[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ69NI4[i, "Treatment"], "T5")) {
+    treatment_id11[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ69NI4[i, "Treatment"], "T6")) {
+    treatment_id11[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ69NI4$treatment_id11 <- treatment_id11
+####################################################################################################################################################
+treatment_id12 <- rep("", times = nrow(CGE3.1RframeQ69NI4))
+
+for (i in 1:nrow(CGE3.1RframeQ69NI4)) {
+  if(str_detect(CGE3.1RframeQ69NI4[i, "Treatment"], "T1")) {
+    treatment_id12[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ69NI4[i, "Treatment"], "T2")) {
+    treatment_id12[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ69NI4[i, "Treatment"], "T3")) {
+    treatment_id12[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ69NI4[i, "Treatment"], "T4")) {
+    treatment_id12[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ69NI4[i, "Treatment"], "T5")) {
+    treatment_id12[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ69NI4[i, "Treatment"], "T6")) {
+    treatment_id12[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ69NI4$treatment_id12 <- treatment_id12
+#######################################################################################################################################################
+treatment_id13 <- rep("", times = nrow(CGE3.5LframeQ9M4D6))
+
+for (i in 1:nrow(CGE3.5LframeQ9M4D6)) {
+  if(str_detect(CGE3.5LframeQ9M4D6[i, "Treatment"], "T1")) {
+    treatment_id13[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ9M4D6[i, "Treatment"], "T2")) {
+    treatment_id13[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ9M4D6[i, "Treatment"], "T3")) {
+    treatment_id13[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ9M4D6[i, "Treatment"], "T4")) {
+    treatment_id13[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ9M4D6[i, "Treatment"], "T5")) {
+    treatment_id13[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ9M4D6[i, "Treatment"], "T6")) {
+    treatment_id13[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ9M4D6$treatment_id13 <- treatment_id13
+#########################################################################################################################################################
+treatment_id14 <- rep("", times = nrow(CGE3.5RframeQ9M4D6))
+
+for (i in 1:nrow(CGE3.5RframeQ9M4D6)) {
+  if(str_detect(CGE3.5RframeQ9M4D6[i, "Treatment"], "T1")) {
+    treatment_id14[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ9M4D6[i, "Treatment"], "T2")) {
+    treatment_id14[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ9M4D6[i, "Treatment"], "T3")) {
+    treatment_id14[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ9M4D6[i, "Treatment"], "T4")) {
+    treatment_id14[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ9M4D6[i, "Treatment"], "T5")) {
+    treatment_id14[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ9M4D6[i, "Treatment"], "T6")) {
+    treatment_id14[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ9M4D6$treatment_id14 <- treatment_id14
+#############################################################################################################################################################
+treatment_id15 <- rep("", times = nrow(CGE3.1LframeQ9M4D6))
+
+for (i in 1:nrow(CGE3.1LframeQ9M4D6)) {
+  if(str_detect(CGE3.1LframeQ9M4D6[i, "Treatment"], "T1")) {
+    treatment_id15[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ9M4D6[i, "Treatment"], "T2")) {
+    treatment_id15[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ9M4D6[i, "Treatment"], "T3")) {
+    treatment_id15[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ9M4D6[i, "Treatment"], "T4")) {
+    treatment_id15[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ9M4D6[i, "Treatment"], "T5")) {
+    treatment_id15[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ9M4D6[i, "Treatment"], "T6")) {
+    treatment_id15[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ9M4D6$treatment_id15 <- treatment_id15
+#################################################################################################################################################################
+treatment_id16 <- rep("", times = nrow(CGE3.1RframeQ9M4D6))
+
+for (i in 1:nrow(CGE3.1RframeQ9M4D6)) {
+  if(str_detect(CGE3.1RframeQ9M4D6[i, "Treatment"], "T1")) {
+    treatment_id16[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ9M4D6[i, "Treatment"], "T2")) {
+    treatment_id16[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ9M4D6[i, "Treatment"], "T3")) {
+    treatment_id16[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ9M4D6[i, "Treatment"], "T4")) {
+    treatment_id16[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ9M4D6[i, "Treatment"], "T5")) {
+    treatment_id16[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ9M4D6[i, "Treatment"], "T6")) {
+    treatment_id16[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ9M4D6$treatment_id16 <- treatment_id16
+##################################################################################################################################################################
+treatment_id17 <- rep("", times = nrow(CGE3.5LframeQ851M9))
+
+for (i in 1:nrow(CGE3.5LframeQ851M9)) {
+  if(str_detect(CGE3.5LframeQ851M9[i, "Treatment"], "T1")) {
+    treatment_id17[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ851M9[i, "Treatment"], "T2")) {
+    treatment_id17[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ851M9[i, "Treatment"], "T3")) {
+    treatment_id17[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ851M9[i, "Treatment"], "T4")) {
+    treatment_id17[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ851M9[i, "Treatment"], "T5")) {
+    treatment_id17[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ851M9[i, "Treatment"], "T6")) {
+    treatment_id17[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ851M9$treatment_id17 <- treatment_id17
+#####################################################################################################################################################################
+treatment_id18 <- rep("", times = nrow(CGE3.5RframeQ851M9))
+
+for (i in 1:nrow(CGE3.5RframeQ851M9)) {
+  if(str_detect(CGE3.5RframeQ851M9[i, "Treatment"], "T1")) {
+    treatment_id18[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ851M9[i, "Treatment"], "T2")) {
+    treatment_id18[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ851M9[i, "Treatment"], "T3")) {
+    treatment_id18[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ851M9[i, "Treatment"], "T4")) {
+    treatment_id18[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ851M9[i, "Treatment"], "T5")) {
+    treatment_id18[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ851M9[i, "Treatment"], "T6")) {
+    treatment_id18[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ851M9$treatment_id18 <- treatment_id18
+#######################################################################################################################################################################
+treatment_id19 <- rep("", times = nrow(CGE3.1LframeQ851M9))
+
+for (i in 1:nrow(CGE3.1LframeQ851M9)) {
+  if(str_detect(CGE3.1LframeQ851M9[i, "Treatment"], "T1")) {
+    treatment_id19[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ851M9[i, "Treatment"], "T2")) {
+    treatment_id19[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ851M9[i, "Treatment"], "T3")) {
+    treatment_id19[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ851M9[i, "Treatment"], "T4")) {
+    treatment_id19[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ851M9[i, "Treatment"], "T5")) {
+    treatment_id19[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ851M9[i, "Treatment"], "T6")) {
+    treatment_id19[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ851M9$treatment_id19 <- treatment_id19
+###########################################################################################################################################################################
+treatment_id20 <- rep("", times = nrow(CGE3.1RframeQ851M9))
+
+for (i in 1:nrow(CGE3.1RframeQ851M9)) {
+  if(str_detect(CGE3.1RframeQ851M9[i, "Treatment"], "T1")) {
+    treatment_id20[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ851M9[i, "Treatment"], "T2")) {
+    treatment_id20[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ851M9[i, "Treatment"], "T3")) {
+    treatment_id20[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ851M9[i, "Treatment"], "T4")) {
+    treatment_id20[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ851M9[i, "Treatment"], "T5")) {
+    treatment_id20[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ851M9[i, "Treatment"], "T6")) {
+    treatment_id20[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ851M9$treatment_id20 <- treatment_id20
+##########################################################################################################################################################################
+treatment_id21 <- rep("", times = nrow(CGE3.5LframeQ10R45))
+
+for (i in 1:nrow(CGE3.5LframeQ10R45)) {
+  if(str_detect(CGE3.5LframeQ10R45[i, "Treatment"], "T1")) {
+    treatment_id21[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ10R45[i, "Treatment"], "T2")) {
+    treatment_id21[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10R45[i, "Treatment"], "T3")) {
+    treatment_id21[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10R45[i, "Treatment"], "T4")) {
+    treatment_id21[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10R45[i, "Treatment"], "T5")) {
+    treatment_id21[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10R45[i, "Treatment"], "T6")) {
+    treatment_id21[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ10R45$treatment_id21 <- treatment_id21
+############################################################################################################################################################################
+treatment_id22 <- rep("", times = nrow(CGE3.5RframeQ10R45))
+
+for (i in 1:nrow(CGE3.5RframeQ10R45)) {
+  if(str_detect(CGE3.5RframeQ10R45[i, "Treatment"], "T1")) {
+    treatment_id22[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ10R45[i, "Treatment"], "T2")) {
+    treatment_id22[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10R45[i, "Treatment"], "T3")) {
+    treatment_id22[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10R45[i, "Treatment"], "T4")) {
+    treatment_id22[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10R45[i, "Treatment"], "T5")) {
+    treatment_id22[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10R45[i, "Treatment"], "T6")) {
+    treatment_id22[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ10R45$treatment_id22 <- treatment_id22
+##############################################################################################################################################################################
+treatment_id23 <- rep("", times = nrow(CGE3.1LframeQ10R45))
+
+for (i in 1:nrow(CGE3.1LframeQ10R45)) {
+  if(str_detect(CGE3.1LframeQ10R45[i, "Treatment"], "T1")) {
+    treatment_id23[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ10R45[i, "Treatment"], "T2")) {
+    treatment_id23[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10R45[i, "Treatment"], "T3")) {
+    treatment_id23[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10R45[i, "Treatment"], "T4")) {
+    treatment_id23[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10R45[i, "Treatment"], "T5")) {
+    treatment_id23[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10R45[i, "Treatment"], "T6")) {
+    treatment_id23[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ10R45$treatment_id23 <- treatment_id23
+#############################################################################################################################################################################
+treatment_id24 <- rep("", times = nrow(CGE3.1RframeQ10R45))
+
+for (i in 1:nrow(CGE3.1RframeQ10R45)) {
+  if(str_detect(CGE3.1RframeQ10R45[i, "Treatment"], "T1")) {
+    treatment_id24[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ10R45[i, "Treatment"], "T2")) {
+    treatment_id24[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10R45[i, "Treatment"], "T3")) {
+    treatment_id24[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10R45[i, "Treatment"], "T4")) {
+    treatment_id24[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10R45[i, "Treatment"], "T5")) {
+    treatment_id24[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10R45[i, "Treatment"], "T6")) {
+    treatment_id24[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ10R45$treatment_id24 <- treatment_id24
+############################################################################################################################################################################
+treatment_id25 <- rep("", times = nrow(CGE3.5LframeQ10C31))
+
+for (i in 1:nrow(CGE3.5LframeQ10C31)) {
+  if(str_detect(CGE3.5LframeQ10C31[i, "Treatment"], "T1")) {
+    treatment_id25[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ10C31[i, "Treatment"], "T2")) {
+    treatment_id25[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10C31[i, "Treatment"], "T3")) {
+    treatment_id25[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10C31[i, "Treatment"], "T4")) {
+    treatment_id25[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10C31[i, "Treatment"], "T5")) {
+    treatment_id25[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ10C31[i, "Treatment"], "T6")) {
+    treatment_id25[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ10C31$treatment_id25 <- treatment_id25
+##########################################################################################################################################################################
+treatment_id26 <- rep("", times = nrow(CGE3.5RframeQ10C31))
+
+for (i in 1:nrow(CGE3.5RframeQ10C31)) {
+  if(str_detect(CGE3.5RframeQ10C31[i, "Treatment"], "T1")) {
+    treatment_id26[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ10C31[i, "Treatment"], "T2")) {
+    treatment_id26[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10C31[i, "Treatment"], "T3")) {
+    treatment_id26[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10C31[i, "Treatment"], "T4")) {
+    treatment_id26[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10C31[i, "Treatment"], "T5")) {
+    treatment_id26[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ10C31[i, "Treatment"], "T6")) {
+    treatment_id26[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ10C31$treatment_id26 <- treatment_id26
+##########################################################################################################################################################################
+treatment_id27 <- rep("", times = nrow(CGE3.1LframeQ10C31))
+
+for (i in 1:nrow(CGE3.1LframeQ10C31)) {
+  if(str_detect(CGE3.1LframeQ10C31[i, "Treatment"], "T1")) {
+    treatment_id27[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ10C31[i, "Treatment"], "T2")) {
+    treatment_id27[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10C31[i, "Treatment"], "T3")) {
+    treatment_id27[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10C31[i, "Treatment"], "T4")) {
+    treatment_id27[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10C31[i, "Treatment"], "T5")) {
+    treatment_id27[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ10C31[i, "Treatment"], "T6")) {
+    treatment_id27[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ10C31$treatment_id27 <- treatment_id27
+##########################################################################################################################################################################
+treatment_id28 <- rep("", times = nrow(CGE3.1RframeQ10C31))
+
+for (i in 1:nrow(CGE3.1RframeQ10C31)) {
+  if(str_detect(CGE3.1RframeQ10C31[i, "Treatment"], "T1")) {
+    treatment_id28[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ10C31[i, "Treatment"], "T2")) {
+    treatment_id28[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10C31[i, "Treatment"], "T3")) {
+    treatment_id28[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10C31[i, "Treatment"], "T4")) {
+    treatment_id28[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10C31[i, "Treatment"], "T5")) {
+    treatment_id28[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ10C31[i, "Treatment"], "T6")) {
+    treatment_id28[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ10C31$treatment_id28 <- treatment_id28
+################################################################
+treatment_id29 <- rep("", times = nrow(CGE3.5LframeQ0NZY1))
+
+for (i in 1:nrow(CGE3.5LframeQ0NZY1)) {
+  if(str_detect(CGE3.5LframeQ0NZY1[i, "Treatment"], "T1")) {
+    treatment_id29[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5LframeQ0NZY1[i, "Treatment"], "T2")) {
+    treatment_id29[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ0NZY1[i, "Treatment"], "T3")) {
+    treatment_id29[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ0NZY1[i, "Treatment"], "T4")) {
+    treatment_id29[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ0NZY1[i, "Treatment"], "T5")) {
+    treatment_id29[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5LframeQ0NZY1[i, "Treatment"], "T6")) {
+    treatment_id29[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5LframeQ0NZY1$treatment_id29 <- treatment_id29
+#################################################################################################33
+treatment_id30 <- rep("", times = nrow(CGE3.5RframeQ0NZY1))
+
+for (i in 1:nrow(CGE3.5RframeQ0NZY1)) {
+  if(str_detect(CGE3.5RframeQ0NZY1[i, "Treatment"], "T1")) {
+    treatment_id30[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.5RframeQ0NZY1[i, "Treatment"], "T2")) {
+    treatment_id30[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ0NZY1[i, "Treatment"], "T3")) {
+    treatment_id30[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ0NZY1[i, "Treatment"], "T4")) {
+    treatment_id30[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ0NZY1[i, "Treatment"], "T5")) {
+    treatment_id30[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.5RframeQ0NZY1[i, "Treatment"], "T6")) {
+    treatment_id30[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.5RframeQ0NZY1$treatment_id30 <- treatment_id30
+######################################################################################################3
+treatment_id31 <- rep("", times = nrow(CGE3.1LframeQ0NZY1))
+
+for (i in 1:nrow(CGE3.1LframeQ0NZY1)) {
+  if(str_detect(CGE3.1LframeQ0NZY1[i, "Treatment"], "T1")) {
+    treatment_id31[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1LframeQ0NZY1[i, "Treatment"], "T2")) {
+    treatment_id31[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ0NZY1[i, "Treatment"], "T3")) {
+    treatment_id31[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ0NZY1[i, "Treatment"], "T4")) {
+    treatment_id31[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ0NZY1[i, "Treatment"], "T5")) {
+    treatment_id31[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1LframeQ0NZY1[i, "Treatment"], "T6")) {
+    treatment_id31[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1LframeQ0NZY1$treatment_id31 <- treatment_id31
+############################################################################################################
+treatment_id32 <- rep("", times = nrow(CGE3.1RframeQ0NZY1))
+
+for (i in 1:nrow(CGE3.1RframeQ0NZY1)) {
+  if(str_detect(CGE3.1RframeQ0NZY1[i, "Treatment"], "T1")) {
+    treatment_id32[i] <- "T1 - 40mM NH4"
+  } 
+  else if(str_detect(CGE3.1RframeQ0NZY1[i, "Treatment"], "T2")) {
+    treatment_id32[i] <- "T2 - 4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ0NZY1[i, "Treatment"], "T3")) {
+    treatment_id32[i] <- "T3 - 0.4mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ0NZY1[i, "Treatment"], "T4")) {
+    treatment_id32[i] <- "T4 - 0.04mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ0NZY1[i, "Treatment"], "T5")) {
+    treatment_id32[i] <- "T5 - 0.004mM NH4"
+  }
+  else if(str_detect(CGE3.1RframeQ0NZY1[i, "Treatment"], "T6")) {
+    treatment_id32[i] <- "T6 - UTC"
+  }
+}
+
+CGE3.1RframeQ0NZY1$treatment_id32 <- treatment_id32
+```
+
+## Response to Ammonium Condition 
+
+Our goal was to validate a panel of ammonium responsive targets for use in measuring the influence of a field condition (enhanced ammonium due to Proven inoculation). We did this by demonstrating differential expression of the targets at a varying field condition levels, validating their sensitivity. Finding specific field condition responsive targets (specific to ammonium availability) SHOULD allow us to differentiate between fields having higher levels of said field condition. 
+
+```{r}
+###################################Graph by Target and Tissue Sample for Characterization of Target Sensitivity############################
+
+
+CGE3.5L.Q2V8D7 <- ggplot(CGE3.5LframeQ2V8D7, aes(Treatment, delta_ct, color = treatment_id)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q2V8D7") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q2V8D7
+
+CGE3.5R.Q2V8D7 <- ggplot(CGE3.5RframeQ2V8D7, aes(Treatment, delta_ct, color = treatment_id2)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q2V8D7") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q2V8D7
+
+CGE3.1L.Q2V8D7 <- ggplot(CGE3.1LframeQ2V8D7, aes(Treatment, delta_ct, color = treatment_id3)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q2V8D7") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q2V8D7
+
+CGE3.1R.Q2V8D7 <- ggplot(CGE3.1RframeQ2V8D7, aes(Treatment, delta_ct, color = treatment_id4)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q2V8D7") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q2V8D7
+
+CGE3.5L.Q6Z5C8 <- ggplot(CGE3.5LframeQ6Z5C8, aes(Treatment, delta_ct, color = treatment_id5)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q6Z5C8") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q6Z5C8
+
+CGE3.5R.Q6Z5C8 <- ggplot(CGE3.5RframeQ6Z5C8, aes(Treatment, delta_ct, color = treatment_id6)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q6Z5C8") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q6Z5C8
+
+CGE3.1L.Q6Z5C8 <- ggplot(CGE3.1LframeQ6Z5C8, aes(Treatment, delta_ct, color = treatment_id7)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q6Z5C8") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q6Z5C8
+
+CGE3.1R.Q6Z5C8 <- ggplot(CGE3.1RframeQ6Z5C8, aes(Treatment, delta_ct, color = treatment_id8)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q6Z5C8") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q6Z5C8
+
+CGE3.5L.Q69NI4 <- ggplot(CGE3.5LframeQ69NI4, aes(Treatment, delta_ct, color = treatment_id9)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q69NI4") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q69NI4
+
+CGE3.5R.Q69NI4 <- ggplot(CGE3.5RframeQ69NI4, aes(Treatment, delta_ct, color = treatment_id10)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q69NI4") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q69NI4
+
+CGE3.1L.Q69NI4 <- ggplot(CGE3.1LframeQ69NI4, aes(Treatment, delta_ct, color = treatment_id11)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q69NI4") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q69NI4
+
+CGE3.1R.Q69NI4 <- ggplot(CGE3.1RframeQ69NI4, aes(Treatment, delta_ct, color = treatment_id12)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q69NI4") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q69NI4
+
+CGE3.5L.Q9M4D6 <- ggplot(CGE3.5LframeQ9M4D6, aes(Treatment, delta_ct, color = treatment_id13)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q9M4D6") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q9M4D6
+
+CGE3.5R.Q9M4D6 <- ggplot(CGE3.5RframeQ9M4D6, aes(Treatment, delta_ct, color = treatment_id14)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q9M4D6") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q9M4D6
+
+CGE3.1L.Q9M4D6 <- ggplot(CGE3.1LframeQ9M4D6, aes(Treatment, delta_ct, color = treatment_id15)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q9M4D6") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q9M4D6
+
+CGE3.1R.Q9M4D6 <- ggplot(CGE3.1RframeQ9M4D6, aes(Treatment, delta_ct, color = treatment_id16)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q9M4D6") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q9M4D6
+
+CGE3.5L.Q851M9 <- ggplot(CGE3.5LframeQ851M9, aes(Treatment, delta_ct, color = treatment_id17)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q851M9") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q851M9
+
+CGE3.5R.Q851M9 <- ggplot(CGE3.5RframeQ851M9, aes(Treatment, delta_ct, color = treatment_id18)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q851M9") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q851M9
+
+CGE3.1L.Q851M9 <- ggplot(CGE3.1LframeQ851M9, aes(Treatment, delta_ct, color = treatment_id19)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q851M9") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q851M9
+
+CGE3.1R.Q851M9 <- ggplot(CGE3.1RframeQ851M9, aes(Treatment, delta_ct, color = treatment_id20)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q851M9") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q851M9
+
+CGE3.5L.Q10R45 <- ggplot(CGE3.5LframeQ10R45, aes(Treatment, delta_ct, color = treatment_id21)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q10R45") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q10R45
+
+CGE3.5R.Q10R45 <- ggplot(CGE3.5RframeQ10R45, aes(Treatment, delta_ct, color = treatment_id22)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q10R45") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q10R45
+
+CGE3.1L.Q10R45 <- ggplot(CGE3.1LframeQ10R45, aes(Treatment, delta_ct, color = treatment_id23)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q10R45") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q10R45
+
+CGE3.1R.Q10R45 <- ggplot(CGE3.1RframeQ10R45, aes(Treatment, delta_ct, color = treatment_id24)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q10R45") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q10R45
+
+CGE3.5L.Q10C31 <- ggplot(CGE3.5LframeQ10C31, aes(Treatment, delta_ct, color = treatment_id25)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q10C31") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q10C31
+
+CGE3.5R.Q10C31 <- ggplot(CGE3.5RframeQ10C31, aes(Treatment, delta_ct, color = treatment_id26)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q10C31") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q10C31
+
+CGE3.1L.Q10C31 <- ggplot(CGE3.1LframeQ10C31, aes(Treatment, delta_ct, color = treatment_id27)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q10C31") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q10C31
+
+CGE3.1R.Q10C31 <- ggplot(CGE3.1RframeQ10C31, aes(Treatment, delta_ct, color = treatment_id28)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q10C31") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q10C31
+
+CGE3.5L.Q0NZY1 <- ggplot(CGE3.5LframeQ0NZY1, aes(Treatment, delta_ct, color = treatment_id29)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Leaf-Q0NZY1") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5L.Q0NZY1
+
+CGE3.5R.Q0NZY1 <- ggplot(CGE3.5RframeQ0NZY1, aes(Treatment, delta_ct, color = treatment_id30)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-5day-Root-Q0NZY1") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.5R.Q0NZY1
+
+CGE3.1L.Q0NZY1 <- ggplot(CGE3.1LframeQ0NZY1, aes(Treatment, delta_ct, color = treatment_id31)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Leaf-Q0NZY1") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1L.Q0NZY1
+
+CGE3.1R.Q0NZY1 <- ggplot(CGE3.1RframeQ0NZY1, aes(Treatment, delta_ct, color = treatment_id32)) + scale_y_reverse() + geom_boxplot() + labs(title = "CGE3-1day-Root-Q0NZY1") + 
+  theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90)) + scale_color_viridis(discrete = TRUE, name = "Treatment")
+CGE3.1R.Q0NZY1
+#####################################################################################################################################################################
+```
+
+## Composite Score Generation 
+To use gene expression as a tool for yield prediction, a collection of NH4+ responsive genes activity is measured at varying NH4+ dosage rates to demonstrate panel sensitivity. Here we developed a composite score of real time bio marker expression which we can correlate to yield response in varying field nutrient conditions, therefore allowing us to predict yield at any certain time in the plants morphology based on the site specific composite score (expression profile) of our panel. 
+```{r}
+Compositescore <- read_excel("Comosite Score Targets.xlsx")
+Compositescore 
+
+Compositescoreall <- read_excel("Comosite Score Targets.xlsx", sheet = "Sheet3")
+Compositescoreall
+
+Compositescoreall2 <- ggplot(Compositescoreall, aes(`Treatments`, `log^dtdtCT`, fill = `Targets`)) + geom_boxplot() + ggtitle("CGE Comparative Gene Expression of Individual Targets per Treatment\n (Repressed Targets Inversed)") + theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+Compositescoreall2
+
+
+compgraphave <- ggplot(Compositescore, aes(`Sample Treatment`,`comp score`, fill = `Sample Treatment`)) + geom_boxplot() + ggtitle("CGE Target Ave Composite Score") + theme(panel.background = element_blank(),axis.text.x = element_text(angle = 90))
+compgraphave
+
+```
+

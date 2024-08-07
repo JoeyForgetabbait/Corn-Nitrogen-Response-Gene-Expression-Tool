@@ -1,0 +1,136 @@
+---
+title: "CGE008 Nevada V12 Final Analysis"
+author: "Joseph Creanza"
+date: "2023-08-30"
+output: 
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r}
+library(magrittr)
+library(rio)
+library(janitor)
+library(tidyverse)
+library(data.table)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+setwd("C:/Users/JosephCreanza/OneDrive - Pivot Bio/Documents/Pivot Docuents/Pivot Employee Documents/NGS/CGE/RT-qPCR Analysis Script/CGE008/Nevada_V")
+quantRTdata <- read_excel("CGE008_Nevada_V12_all.xls", sheet = "Results")
+quantRTdata
+
+
+##Next create data frame including relevant columns, sample ID and crt score for delta CT cal. 
+
+
+
+dataIneed <- data.table(Sample=c(quantRTdata$...4), Target=c(quantRTdata$...5),
+                        RelativeCTMean=c(quantRTdata$...10))
+CGEDataTable <- dataIneed %>% slice(-c(1:44))
+CGEDataTable
+
+
+##########################Calculate the average ct of house keeping genes for deltaCT calc############################
+
+HKmean <- CGEDataTable %>%
+  mutate(RelativeCTMean = as.double(RelativeCTMean)) %>% 
+  filter(Target %in% c("ef1a", "btub")) %>% 
+  group_by(Sample) %>% 
+  summarise(avg_hk_ct = mean(RelativeCTMean))
+HKmean
+
+
+TargetDCT <- CGEDataTable %>% left_join(.,HKmean) %>% mutate(delta_ct = as.double(RelativeCTMean) - as.double(avg_hk_ct))
+view(TargetDCT)
+################################Join values to experimental meta data file###########################
+
+ExpMetaData <- read_excel("CGE Field Trial Master Sheet_Nevada_V.xlsx", sheet = "Meta Key")
+view(ExpMetaData)
+
+Modpizza <- TargetDCT %>% select(Sample, Target, delta_ct) %>% mutate(Sample = as.numeric(Sample))
+Modpizza %>% mutate(Sample = as.numeric(Sample))
+
+
+FinalPizza <- Modpizza %>% inner_join(ExpMetaData, by = "Sample")
+FinalPizza
+
+###################################################################Calculate Composite Score#######################################################################
+
+compdata <- FinalPizza %>% filter(Treatment == "Treatment09 - NTC : N:100%-120 LB", Target != "ef1a", Target != "btub") %>% na.omit() %>% group_by(Target) %>% mutate(mean(delta_ct)) 
+
+compdata1 <- compdata %>% select(Sample, Target, `mean(delta_ct)`)
+
+####################        not calculating dtdtct correctly                                  ############################
+
+fugeela <- FinalPizza %>% left_join(compdata1, by = 'Target', 'mean(delta_ct)') %>% 
+  na.omit() 
+
+fugeela <- fugeela %>% mutate(dtdtct = delta_ct - `mean(delta_ct)`) %>% 
+  mutate(twodtct = 2 ^ -dtdtct) %>% 
+  mutate(logdtdt = log2(twodtct)) %>% 
+  distinct()
+
+
+new_df = fugeela %>%
+  select(Target, logdtdt) %>%
+  mutate(
+    inverse_dt = ifelse(
+      test = !str_detect(Target, "Q2V8D7|Q9M4D6|Q10C31"),
+      yes = (-1 * logdtdt),
+      no = logdtdt)
+  ) 
+
+fugeela$inverse_dt = new_df$inverse_dt
+
+#####I need to average the inverse_dt 
+
+
+finalcompscore <- fugeela %>% select(Sample.x, Target, Treatment, inverse_dt) %>% group_by(Sample.x) %>% distinct() %>% arrange(desc(Sample.x)) %>% summarise(fnlcmpscr = mean(inverse_dt))
+
+almost <- fugeela %>% distinct() %>% arrange(desc(Sample.x))
+
+finalscr <- almost %>% left_join(finalcompscore, by = 'Sample.x')
+
+
+
+
+############################################################################################################################################################################
+#################################################################main graphing#############################################################################################
+
+Q6 <- ggplot(FinalPizza, aes(TrtDesc., delta_ct, color = Treatment)) + 
+  scale_color_viridis(discrete = TRUE, name = "Treatment", option = "turbo") + 
+  geom_boxplot() + ggtitle("Target Differential Expression") + 
+  theme(panel.background = element_blank(),axis.text.x = element_blank())
+
+Q6
+
+Q6 + facet_grid(. ~ Target)
+
+
+compscore <- ggplot(finalscr, aes(Treatment, fnlcmpscr, color = Treatment)) + 
+  scale_color_viridis(discrete = TRUE, name = "Treatment", option = "turbo") + 
+  geom_boxplot() + ggtitle("Nevada V stage Composite Response") + 
+  theme(panel.background = element_blank(),axis.text.x = element_blank())
+
+compscore
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
